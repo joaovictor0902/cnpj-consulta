@@ -19,7 +19,10 @@ function Cell({
   className?: string;
 }) {
   return (
-    <div className={`border-r border-b border-gray-400 px-2 py-1.5 ${className}`}>
+    <div
+      className={`border-r border-b border-gray-400 px-2 py-1.5 ${className}`}
+      style={{ borderColor: '#9ca3af' }}
+    >
       <p className="text-[9px] font-bold uppercase tracking-wide text-gray-500 leading-none mb-1">
         {label}
       </p>
@@ -29,7 +32,7 @@ function Cell({
 }
 
 function Row({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <div className={`flex ${className}`}>{children}</div>;
+  return <div className={`flex w-full ${className}`}>{children}</div>;
 }
 
 function CopyButton({ text, label = 'Copiar' }: { text: string; label?: string }) {
@@ -52,6 +55,7 @@ function CopyButton({ text, label = 'Copiar' }: { text: string; label?: string }
       type="button"
       onClick={handleCopy}
       title={copied ? 'Copiado!' : label}
+      data-html2canvas-ignore="true"
       className={`inline-flex items-center justify-center p-0.5 rounded transition-all cursor-pointer border ${
         copied 
           ? 'bg-green-50 border-green-300 text-green-700 hover:bg-green-100' 
@@ -127,15 +131,18 @@ export function SummaryCard({ data }: SummaryCardProps) {
     <section
       id="comprovante-cnpj"
       aria-labelledby="comprovante-title"
-      // Container externo: border-top e border-left. As células dão border-right e border-bottom.
-      className="border-t border-l border-gray-400 bg-white font-sans shadow-sm"
+      className="border-t border-l border-gray-400 bg-white font-sans shadow-sm w-full overflow-hidden"
+      style={{ borderColor: '#9ca3af', backgroundColor: '#ffffff' }}
     >
       {/* ── CABEÇALHO ── */}
       <Row>
-        {/* NÚMERO DE INSCRIÇÃO */}
-        <div className="border-r border-b border-gray-400 px-2 py-1.5 w-52 shrink-0">
+        {/* NÚMERO DE INSCRIÇÃO (CNPJ) */}
+        <div
+          className="border-r border-b border-gray-400 px-2 py-1.5 w-[26%] shrink-0"
+          style={{ borderColor: '#9ca3af' }}
+        >
           <p className="text-[9px] font-bold uppercase tracking-wide text-gray-500 leading-none mb-1">
-            Número de Inscrição
+            CNPJ
           </p>
           <div className="flex items-center gap-1.5">
             <p className="text-[13px] font-semibold text-gray-900 leading-snug">{cnpjFormatado}</p>
@@ -147,17 +154,23 @@ export function SummaryCard({ data }: SummaryCardProps) {
         </div>
 
         {/* TÍTULO CENTRAL */}
-        <div className="border-r border-b border-gray-400 flex-1 flex items-center justify-center px-4 py-3">
+        <div
+          className="border-r border-b border-gray-400 flex-1 flex items-center justify-center px-4 py-3 w-[54%]"
+          style={{ borderColor: '#9ca3af' }}
+        >
           <h1
             id="comprovante-title"
-            className="text-[16px] font-bold uppercase text-center text-gray-900 leading-tight tracking-wide"
+            className="text-[15px] font-bold uppercase text-center text-gray-900 leading-tight tracking-wide"
           >
             Comprovante de Inscrição e de Situação<br />Cadastral
           </h1>
         </div>
 
         {/* DATA DE ABERTURA */}
-        <div className="border-r border-b border-gray-400 px-2 py-1.5 w-40 shrink-0">
+        <div
+          className="border-r border-b border-gray-400 px-2 py-1.5 w-[20%] shrink-0"
+          style={{ borderColor: '#9ca3af' }}
+        >
           <p className="text-[9px] font-bold uppercase tracking-wide text-gray-500 leading-none mb-1">
             Data de Abertura
           </p>
@@ -167,7 +180,7 @@ export function SummaryCard({ data }: SummaryCardProps) {
 
       {/* ── NOME EMPRESARIAL ── */}
       <Row>
-        <Cell label="Nome Empresarial" className="flex-1">
+        <Cell label="Nome Empresarial" className="w-full">
           {nomeEmpresarial !== '—' ? (
             <div className="flex items-center justify-between gap-1">
               <span>{nomeEmpresarial}</span>
@@ -181,17 +194,17 @@ export function SummaryCard({ data }: SummaryCardProps) {
 
       {/* ── NOME FANTASIA + PORTE ── */}
       <Row>
-        <Cell label="Título do Estabelecimento (Nome de Fantasia)" className="flex-1">
-          {nomeFantasia}
+        <Cell label="Título do Estabelecimento (Nome de Fantasia)" className="w-[82%]">
+          {nomeFantasia || '—'}
         </Cell>
-        <Cell label="Porte" className="w-24 shrink-0">
+        <Cell label="Porte" className="w-[18%]">
           {porte}
         </Cell>
       </Row>
 
       {/* ── INSCRIÇÃO ESTADUAL ── */}
       <Row>
-        <Cell label="Inscrição Estadual" className="flex-1">
+        <Cell label="Inscrição Estadual" className="w-full">
           {iePrincipal?.inscricao_estadual ? (
             <div className="flex items-center gap-1.5 py-0.5">
               <span className="font-semibold text-gray-900">{iePrincipal.inscricao_estadual}</span>
@@ -201,23 +214,23 @@ export function SummaryCard({ data }: SummaryCardProps) {
               <CopyButton text={iePrincipal.inscricao_estadual} label="Copiar Inscrição Estadual" />
             </div>
           ) : (
-            <span className="text-gray-400">—</span>
+            <span className="font-semibold text-gray-700">ISENTO</span>
           )}
         </Cell>
       </Row>
 
       {/* ── CNAE PRINCIPAL ── */}
       <Row>
-        <Cell label="Código e Descrição da Atividade Econômica Principal" className="flex-1">
+        <Cell label="Código e Descrição da Atividade Econômica Principal" className="w-full">
           {cnaePrincipal}
         </Cell>
       </Row>
 
       {/* ── CNAES SECUNDÁRIOS ── */}
       <Row>
-        <Cell label="Código e Descrição das Atividades Econômicas Secundárias" className="flex-1">
+        <Cell label="Código e Descrição das Atividades Econômicas Secundárias" className="w-full">
           {cnaesSecundarios.length > 0 ? (
-            <ul className="space-y-0">
+            <ul className="space-y-0.5">
               {cnaesSecundarios.map((c) => (
                 <li key={c}>{c}</li>
               ))}
@@ -230,14 +243,14 @@ export function SummaryCard({ data }: SummaryCardProps) {
 
       {/* ── NATUREZA JURÍDICA ── */}
       <Row>
-        <Cell label="Código e Descrição da Natureza Jurídica" className="flex-1">
+        <Cell label="Código e Descrição da Natureza Jurídica" className="w-full">
           {naturezaJuridica}
         </Cell>
       </Row>
 
       {/* ── ENDEREÇO ── */}
       <Row>
-        <Cell label="Logradouro" className="flex-1">
+        <Cell label="Logradouro" className="w-[60%]">
           {logradouro !== '—' ? (
             <div className="flex items-center justify-between gap-1">
               <span>{logradouro}</span>
@@ -247,7 +260,7 @@ export function SummaryCard({ data }: SummaryCardProps) {
             <span>—</span>
           )}
         </Cell>
-        <Cell label="Número" className="w-24 shrink-0">
+        <Cell label="Número" className="w-[18%]">
           {numero ? (
             <div className="flex items-center justify-between gap-1">
               <span>{numero}</span>
@@ -257,7 +270,7 @@ export function SummaryCard({ data }: SummaryCardProps) {
             <span className="text-gray-400">—</span>
           )}
         </Cell>
-        <Cell label="Complemento" className="w-36 shrink-0">
+        <Cell label="Complemento" className="w-[22%]">
           {complemento ? (
             <div className="flex items-center justify-between gap-1">
               <span>{complemento}</span>
@@ -271,7 +284,7 @@ export function SummaryCard({ data }: SummaryCardProps) {
 
       {/* ── CEP / BAIRRO / MUNICÍPIO / UF ── */}
       <Row>
-        <Cell label="CEP" className="w-28 shrink-0">
+        <Cell label="CEP" className="w-[18%]">
           {cep !== '—' ? (
             <div className="flex items-center justify-between gap-1">
               <span>{cep}</span>
@@ -281,7 +294,7 @@ export function SummaryCard({ data }: SummaryCardProps) {
             <span>—</span>
           )}
         </Cell>
-        <Cell label="Bairro/Distrito" className="flex-1">
+        <Cell label="Bairro/Distrito" className="w-[32%]">
           {bairro ? (
             <div className="flex items-center justify-between gap-1">
               <span>{bairro}</span>
@@ -291,17 +304,17 @@ export function SummaryCard({ data }: SummaryCardProps) {
             <span className="text-gray-400">—</span>
           )}
         </Cell>
-        <Cell label="Município" className="flex-1">
-          {municipio}
+        <Cell label="Município" className="w-[42%]">
+          {municipio || '—'}
         </Cell>
-        <Cell label="UF" className="w-12 shrink-0">
-          {uf}
+        <Cell label="UF" className="w-[8%]">
+          {uf || '—'}
         </Cell>
       </Row>
 
       {/* ── EMAIL / TELEFONE ── */}
       <Row>
-        <Cell label="E-mail" className="flex-1">
+        <Cell label="E-mail" className="w-[65%]">
           {email ? (
             <div className="flex items-center justify-between gap-1">
               <span>{email}</span>
@@ -311,7 +324,7 @@ export function SummaryCard({ data }: SummaryCardProps) {
             <span className="text-gray-400">—</span>
           )}
         </Cell>
-        <Cell label="Telefone" className="w-44 shrink-0">
+        <Cell label="Telefone" className="w-[35%]">
           {telefone ? (
             <div className="flex items-center justify-between gap-1">
               <span>{telefone}</span>
@@ -325,7 +338,7 @@ export function SummaryCard({ data }: SummaryCardProps) {
 
       {/* ── ENTE FEDERATIVO RESPONSÁVEL ── */}
       <Row>
-        <Cell label="Ente Federativo Responsável (EFR)" className="flex-1">
+        <Cell label="Ente Federativo Responsável (EFR)" className="w-full">
           {efr || <span className="text-gray-400">—</span>}
         </Cell>
       </Row>
@@ -333,9 +346,13 @@ export function SummaryCard({ data }: SummaryCardProps) {
       {/* ── SITUAÇÃO CADASTRAL / DATA ── */}
       <Row>
         <div
-          className={`border-r border-b border-gray-400 px-2 py-1.5 flex-1 ${
+          className={`border-r border-b border-gray-400 px-2 py-1.5 w-[75%] ${
             isSituacaoAtiva ? 'bg-green-50' : 'bg-red-50'
           }`}
+          style={{
+            borderColor: '#9ca3af',
+            backgroundColor: isSituacaoAtiva ? '#f0fdf4' : '#fef2f2',
+          }}
         >
           <p className="text-[9px] font-bold uppercase tracking-wide text-gray-500 leading-none mb-1">
             Situação Cadastral
@@ -344,31 +361,33 @@ export function SummaryCard({ data }: SummaryCardProps) {
             className={`text-[13px] font-bold uppercase leading-snug ${
               isSituacaoAtiva ? 'text-green-700' : 'text-red-700'
             }`}
+            style={{ color: isSituacaoAtiva ? '#15803d' : '#b91c1c' }}
           >
             {situacao}
           </p>
         </div>
-        <Cell label="Data da Situação Cadastral" className="w-44 shrink-0">
+        <Cell label="Data da Situação Cadastral" className="w-[25%]">
           {dataSituacao}
         </Cell>
       </Row>
 
       {/* ── MOTIVO DE SITUAÇÃO CADASTRAL ── */}
       <Row>
-        <Cell label="Motivo de Situação Cadastral" className="flex-1">
+        <Cell label="Motivo de Situação Cadastral" className="w-full">
           {motivoSituacao || <span className="text-gray-400">—</span>}
         </Cell>
       </Row>
 
       {/* ── SITUAÇÃO ESPECIAL / DATA ── */}
       <Row>
-        <Cell label="Situação Especial" className="flex-1">
+        <Cell label="Situação Especial" className="w-[75%]">
           {situacaoEspecial || <span className="text-gray-400">—</span>}
         </Cell>
-        <Cell label="Data da Situação Especial" className="w-44 shrink-0">
+        <Cell label="Data da Situação Especial" className="w-[25%]">
           {dataSituacaoEspecial || <span className="text-gray-400">—</span>}
         </Cell>
       </Row>
     </section>
   );
 }
+

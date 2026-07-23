@@ -18,49 +18,108 @@ export default function App() {
 
     setDownloadingPdf(true);
     try {
+      // Configura html2canvas com onclone para garantir renderização de desktop (800px)
+      // e remoção de elementos interativos (botões de copiar)
       const canvas = await html2canvas(element, {
         scale: 2,
         useCORS: true,
         logging: false,
+        backgroundColor: '#ffffff',
+        ignoreElements: (el) =>
+          el.hasAttribute('data-html2canvas-ignore') ||
+          el.classList?.contains('print:hidden') ||
+          el.tagName === 'BUTTON',
+        onclone: (clonedDoc) => {
+          const clonedEl = clonedDoc.getElementById('comprovante-cnpj');
+          if (clonedEl) {
+            clonedEl.style.width = '800px';
+            clonedEl.style.maxWidth = '800px';
+            clonedEl.style.minWidth = '800px';
+            clonedEl.style.boxSizing = 'border-box';
+            clonedEl.style.margin = '0';
+            clonedEl.style.boxShadow = 'none';
+
+            // Remove todos os botões no clone como segurança extra
+            const buttons = clonedEl.querySelectorAll(
+              'button, .print\\:hidden, [data-html2canvas-ignore]'
+            );
+            buttons.forEach((btn) => btn.remove());
+          }
+        },
       });
 
-      const imgData = canvas.toDataURL('image/png');
       const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth();
-      const pdfHeight = pdf.internal.pageSize.getHeight();
-      
-      const margin = 10;
-      const contentWidth = pdfWidth - (margin * 2);
+      const pdfWidth = pdf.internal.pageSize.getWidth(); // 210mm
+      const pdfHeight = pdf.internal.pageSize.getHeight(); // 297mm
+      const margin = 10; // 10mm de margem
+      const contentWidth = pdfWidth - margin * 2; // 190mm
       const contentHeight = (canvas.height * contentWidth) / canvas.width;
-      
-      if (contentHeight <= pdfHeight - (margin * 2)) {
+
+      // Altura imprimível de cada página em mm
+      const pageContentHeight = pdfHeight - margin * 2; // 277mm
+
+      if (contentHeight <= pageContentHeight) {
+        // Cabe em uma única página
+        const imgData = canvas.toDataURL('image/png');
         pdf.addImage(imgData, 'PNG', margin, margin, contentWidth, contentHeight);
       } else {
-        let heightLeft = contentHeight;
-        let position = margin;
-        
-        pdf.addImage(imgData, 'PNG', margin, position, contentWidth, contentHeight);
-        heightLeft -= (pdfHeight - margin * 2);
-        
-        while (heightLeft > 0) {
-          position = heightLeft - contentHeight + margin;
-          pdf.addPage();
-          pdf.addImage(imgData, 'PNG', margin, position, contentWidth, contentHeight);
-          heightLeft -= (pdfHeight - margin * 2);
+        // Multi-página: fatia a imagem em submódulos de canvas por página
+        const canvasPageHeight = (canvas.width * pageContentHeight) / contentWidth;
+        let positionY = 0;
+        let pageIndex = 0;
+
+        while (positionY < canvas.height) {
+          if (pageIndex > 0) {
+            pdf.addPage();
+          }
+
+          const sliceHeight = Math.min(canvasPageHeight, canvas.height - positionY);
+
+          const pageCanvas = document.createElement('canvas');
+          pageCanvas.width = canvas.width;
+          pageCanvas.height = sliceHeight;
+
+          const ctx = pageCanvas.getContext('2d');
+          if (ctx) {
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
+            ctx.drawImage(
+              canvas,
+              0,
+              positionY,
+              canvas.width,
+              sliceHeight,
+              0,
+              0,
+              canvas.width,
+              sliceHeight
+            );
+          }
+
+          const pageImgData = pageCanvas.toDataURL('image/png');
+          const slicePdfHeight = (sliceHeight * contentWidth) / canvas.width;
+
+          pdf.addImage(pageImgData, 'PNG', margin, margin, contentWidth, slicePdfHeight);
+
+          positionY += sliceHeight;
+          pageIndex++;
         }
       }
-      
-      const cnpjName = data?.estabelecimento?.cnpj || 'cnpj';
-      const filename = `comprovante-cnpj-${cnpjName}.pdf`;
+
+      const rawCnpj = data?.estabelecimento?.cnpj || '';
+      const cnpjClean = rawCnpj.replace(/\D/g, '') || 'comprovante';
+      const filename = `comprovante-cnpj-${cnpjClean}.pdf`;
 
       if ('showSaveFilePicker' in window) {
         try {
           const handle = await (window as any).showSaveFilePicker({
             suggestedName: filename,
-            types: [{
-              description: 'Documento PDF',
-              accept: { 'application/pdf': ['.pdf'] }
-            }]
+            types: [
+              {
+                description: 'Documento PDF (*.pdf)',
+                accept: { 'application/pdf': ['.pdf'] },
+              },
+            ],
           });
           const pdfBlob = pdf.output('blob');
           const writable = await handle.createWritable();
@@ -68,9 +127,10 @@ export default function App() {
           await writable.close();
         } catch (pickerErr) {
           if (pickerErr instanceof Error && pickerErr.name === 'AbortError') {
-            // Usuário cancelou a janela de salvar
+            // Usuário cancelou a janela de seleção de arquivo/pasta
             return;
           }
+          // Em caso de outro erro (ex: restrição do navegador), faz o download padrão
           pdf.save(filename);
         }
       } else {
