@@ -11,6 +11,12 @@ import { useCnpjLookup } from './hooks/useCnpjLookup';
 export default function App() {
   const { status, data, error, lookup } = useCnpjLookup();
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [toast, setToast] = useState<{ msg: string; visible: boolean } | null>(null);
+
+  const showToast = (msg: string) => {
+    setToast({ msg, visible: true });
+    setTimeout(() => setToast(null), 4000);
+  };
 
   const downloadPdf = async () => {
     const element = document.getElementById('comprovante-cnpj');
@@ -125,6 +131,7 @@ export default function App() {
           const writable = await handle.createWritable();
           await writable.write(pdfBlob);
           await writable.close();
+          showToast('Comprovante baixado com sucesso!');
         } catch (pickerErr) {
           if (pickerErr instanceof Error && pickerErr.name === 'AbortError') {
             // Usuário cancelou a janela de seleção de arquivo/pasta
@@ -132,9 +139,11 @@ export default function App() {
           }
           // Em caso de outro erro (ex: restrição do navegador), faz o download padrão
           pdf.save(filename);
+          showToast('Comprovante baixado com sucesso!');
         }
       } else {
         pdf.save(filename);
+        showToast('Comprovante baixado com sucesso!');
       }
     } catch (err) {
       console.error('Erro ao gerar PDF:', err);
@@ -213,6 +222,19 @@ export default function App() {
           <span>· Ferramenta interna — Fonte: API pública publica.cnpj.ws</span>
         </div>
       </footer>
+
+      {toast?.visible && (
+        <div
+          role="alert"
+          className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800 shadow-lg print:hidden"
+          style={{ animation: 'fadeInUp 0.2s ease-out' }}
+        >
+          <svg className="h-5 w-5 shrink-0 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+          <span>{toast.msg}</span>
+        </div>
+      )}
     </div>
   );
 }

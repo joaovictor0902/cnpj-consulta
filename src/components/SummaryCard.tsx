@@ -21,12 +21,17 @@ function Cell({
   return (
     <div
       className={`border-r border-b border-gray-400 px-2 py-1.5 ${className}`}
-      style={{ borderColor: '#9ca3af' }}
+      style={{ borderColor: '#6b7280', backgroundColor: '#ffffff' }}
     >
-      <p className="text-[9px] font-bold uppercase tracking-wide text-gray-500 leading-none mb-1">
+      <p
+        className="text-[9px] font-bold uppercase tracking-wide leading-none mb-1"
+        style={{ color: '#1c1c1e' }}
+      >
         {label}
       </p>
-      <div className="text-[13px] text-gray-900 leading-snug">{children}</div>
+      <div className="text-[13px] leading-snug" style={{ color: '#000000' }}>
+        {children}
+      </div>
     </div>
   );
 }
@@ -132,35 +137,48 @@ export function SummaryCard({ data }: SummaryCardProps) {
       id="comprovante-cnpj"
       aria-labelledby="comprovante-title"
       className="border-t border-l border-gray-400 bg-white font-sans shadow-sm w-full overflow-hidden"
-      style={{ borderColor: '#9ca3af', backgroundColor: '#ffffff' }}
+      style={{ borderColor: '#6b7280', backgroundColor: '#ffffff' }}
     >
       {/* ── CABEÇALHO ── */}
       <Row>
         {/* NÚMERO DE INSCRIÇÃO (CNPJ) */}
         <div
-          className="border-r border-b border-gray-400 px-2 py-1.5 w-[26%] shrink-0"
-          style={{ borderColor: '#9ca3af' }}
+          className="border-r border-b border-gray-400 px-2 py-1.5 w-[26%] shrink-0 flex flex-col justify-center text-center"
+          style={{ borderColor: '#6b7280', backgroundColor: '#ffffff' }}
         >
-          <p className="text-[9px] font-bold uppercase tracking-wide text-gray-500 leading-none mb-1">
+          <p
+            className="text-[9px] font-bold uppercase tracking-wide leading-none mb-1"
+            style={{ color: '#1c1c1e' }}
+          >
             CNPJ
           </p>
-          <div className="flex items-center gap-1.5">
-            <p className="text-[13px] font-semibold text-gray-900 leading-snug">{cnpjFormatado}</p>
+          <div className="flex items-center justify-center gap-1.5">
+            <p className="text-[13px] font-semibold leading-snug" style={{ color: '#000000' }}>
+              {cnpjFormatado}
+            </p>
             {cnpjFormatado !== '—' && (
               <CopyButton text={cnpjFormatado} label="Copiar CNPJ" />
             )}
           </div>
-          <p className="text-[13px] text-gray-900 leading-snug">{tipo}</p>
+          <p className="text-[13px] leading-snug" style={{ color: '#000000' }}>{tipo}</p>
         </div>
 
         {/* TÍTULO CENTRAL */}
         <div
-          className="border-r border-b border-gray-400 flex-1 flex items-center justify-center px-4 py-3 w-[54%]"
-          style={{ borderColor: '#9ca3af' }}
+          className="border-r border-b border-gray-400 flex-1 flex flex-col items-center justify-center gap-2 px-4 py-2 w-[54%]"
+          style={{ borderColor: '#6b7280', backgroundColor: '#ffffff' }}
         >
+          {/* ponytail: logo via html2canvas (useCORS já habilitado); se trocar por SVG, manter crossOrigin */}
+          <img
+            src="/logo/ATOPY FOGUETE CURVAS.jpg"
+            alt="ATOPY"
+            crossOrigin="anonymous"
+            className="h-9 w-auto object-contain"
+          />
           <h1
             id="comprovante-title"
-            className="text-[15px] font-bold uppercase text-center text-gray-900 leading-tight tracking-wide"
+            className="text-[13px] font-bold uppercase text-center leading-tight tracking-wide"
+            style={{ color: '#000000' }}
           >
             Comprovante de Inscrição e de Situação<br />Cadastral
           </h1>
@@ -168,13 +186,18 @@ export function SummaryCard({ data }: SummaryCardProps) {
 
         {/* DATA DE ABERTURA */}
         <div
-          className="border-r border-b border-gray-400 px-2 py-1.5 w-[20%] shrink-0"
-          style={{ borderColor: '#9ca3af' }}
+          className="border-r border-b border-gray-400 px-2 py-1.5 w-[20%] shrink-0 flex flex-col justify-center text-center"
+          style={{ borderColor: '#6b7280', backgroundColor: '#ffffff' }}
         >
-          <p className="text-[9px] font-bold uppercase tracking-wide text-gray-500 leading-none mb-1">
+          <p
+            className="text-[9px] font-bold uppercase tracking-wide leading-none mb-1"
+            style={{ color: '#1c1c1e' }}
+          >
             Data de Abertura
           </p>
-          <p className="text-[13px] text-gray-900 leading-snug">{dataAbertura}</p>
+          <p className="text-[13px] leading-snug" style={{ color: '#000000' }}>
+            {dataAbertura}
+          </p>
         </div>
       </Row>
 
@@ -207,14 +230,16 @@ export function SummaryCard({ data }: SummaryCardProps) {
         <Cell label="Inscrição Estadual" className="w-full">
           {iePrincipal?.inscricao_estadual ? (
             <div className="flex items-center gap-1.5 py-0.5">
-              <span className="font-semibold text-gray-900">{iePrincipal.inscricao_estadual}</span>
-              <span className="text-[11px] text-gray-500">
+              <span className="font-semibold" style={{ color: '#000000' }}>
+                {iePrincipal.inscricao_estadual}
+              </span>
+              <span className="text-[11px]" style={{ color: '#1c1c1e' }}>
                 ({iePrincipal.estado?.sigla ?? ''}){!iePrincipal.ativo && ' - Inativa'}
               </span>
               <CopyButton text={iePrincipal.inscricao_estadual} label="Copiar Inscrição Estadual" />
             </div>
           ) : (
-            <span className="font-semibold text-gray-700">ISENTO</span>
+            <span className="font-semibold" style={{ color: '#000000' }}>ISENTO</span>
           )}
         </Cell>
       </Row>
@@ -236,7 +261,7 @@ export function SummaryCard({ data }: SummaryCardProps) {
               ))}
             </ul>
           ) : (
-            <span className="text-gray-400">—</span>
+            <span style={{ color: '#0a0a0a' }}>—</span>
           )}
         </Cell>
       </Row>
@@ -267,7 +292,7 @@ export function SummaryCard({ data }: SummaryCardProps) {
               <CopyButton text={numero} label="Copiar Número" />
             </div>
           ) : (
-            <span className="text-gray-400">—</span>
+            <span style={{ color: '#0a0a0a' }}>—</span>
           )}
         </Cell>
         <Cell label="Complemento" className="w-[22%]">
@@ -277,7 +302,7 @@ export function SummaryCard({ data }: SummaryCardProps) {
               <CopyButton text={complemento} label="Copiar Complemento" />
             </div>
           ) : (
-            <span className="text-gray-400">—</span>
+            <span style={{ color: '#0a0a0a' }}>—</span>
           )}
         </Cell>
       </Row>
@@ -301,7 +326,7 @@ export function SummaryCard({ data }: SummaryCardProps) {
               <CopyButton text={bairro} label="Copiar Bairro/Distrito" />
             </div>
           ) : (
-            <span className="text-gray-400">—</span>
+            <span style={{ color: '#0a0a0a' }}>—</span>
           )}
         </Cell>
         <Cell label="Município" className="w-[42%]">
@@ -321,7 +346,7 @@ export function SummaryCard({ data }: SummaryCardProps) {
               <CopyButton text={email} label="Copiar E-mail" />
             </div>
           ) : (
-            <span className="text-gray-400">—</span>
+            <span style={{ color: '#0a0a0a' }}>—</span>
           )}
         </Cell>
         <Cell label="Telefone" className="w-[35%]">
@@ -331,7 +356,7 @@ export function SummaryCard({ data }: SummaryCardProps) {
               <CopyButton text={telefone} label="Copiar Telefone" />
             </div>
           ) : (
-            <span className="text-gray-400">—</span>
+            <span style={{ color: '#0a0a0a' }}>—</span>
           )}
         </Cell>
       </Row>
@@ -339,7 +364,7 @@ export function SummaryCard({ data }: SummaryCardProps) {
       {/* ── ENTE FEDERATIVO RESPONSÁVEL ── */}
       <Row>
         <Cell label="Ente Federativo Responsável (EFR)" className="w-full">
-          {efr || <span className="text-gray-400">—</span>}
+          {efr || <span style={{ color: '#0a0a0a' }}>—</span>}
         </Cell>
       </Row>
 
@@ -350,11 +375,14 @@ export function SummaryCard({ data }: SummaryCardProps) {
             isSituacaoAtiva ? 'bg-green-50' : 'bg-red-50'
           }`}
           style={{
-            borderColor: '#9ca3af',
+            borderColor: '#6b7280',
             backgroundColor: isSituacaoAtiva ? '#f0fdf4' : '#fef2f2',
           }}
         >
-          <p className="text-[9px] font-bold uppercase tracking-wide text-gray-500 leading-none mb-1">
+          <p
+            className="text-[9px] font-bold uppercase tracking-wide leading-none mb-1"
+            style={{ color: '#1c1c1e' }}
+          >
             Situação Cadastral
           </p>
           <p
@@ -374,17 +402,17 @@ export function SummaryCard({ data }: SummaryCardProps) {
       {/* ── MOTIVO DE SITUAÇÃO CADASTRAL ── */}
       <Row>
         <Cell label="Motivo de Situação Cadastral" className="w-full">
-          {motivoSituacao || <span className="text-gray-400">—</span>}
+          {motivoSituacao || <span style={{ color: '#0a0a0a' }}>—</span>}
         </Cell>
       </Row>
 
       {/* ── SITUAÇÃO ESPECIAL / DATA ── */}
       <Row>
         <Cell label="Situação Especial" className="w-[75%]">
-          {situacaoEspecial || <span className="text-gray-400">—</span>}
+          {situacaoEspecial || <span style={{ color: '#0a0a0a' }}>—</span>}
         </Cell>
         <Cell label="Data da Situação Especial" className="w-[25%]">
-          {dataSituacaoEspecial || <span className="text-gray-400">—</span>}
+          {dataSituacaoEspecial || <span style={{ color: '#0a0a0a' }}>—</span>}
         </Cell>
       </Row>
     </section>
