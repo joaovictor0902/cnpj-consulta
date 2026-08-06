@@ -3,6 +3,8 @@ import type { CnpjResponse } from '../utils/types';
 import { formatCep, formatPhone, formatDateBR, formatCnpj } from '../utils/format';
 import { CopyIcon, CheckIcon } from './Icons';
 
+import { LOGO_BASE64 } from '../assets/logoBase64';
+
 type SummaryCardProps = {
   data: CnpjResponse;
 };
@@ -20,16 +22,16 @@ function Cell({
 }) {
   return (
     <div
-      className={`border-r border-b border-gray-400 px-2 py-1.5 ${className}`}
-      style={{ borderColor: '#6b7280', backgroundColor: '#ffffff' }}
+      className={`border-r border-b border-gray-400 px-2 py-1.5 min-w-0 shrink-0 ${className}`}
+      style={{ borderColor: '#6b7280', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
     >
       <p
-        className="text-[9px] font-bold uppercase tracking-wide leading-none mb-1"
-        style={{ color: '#1c1c1e' }}
+        className="text-[9px] font-bold uppercase tracking-wide leading-none mb-1 break-words overflow-hidden"
+        style={{ color: '#1c1c1e', wordBreak: 'break-word' }}
       >
         {label}
       </p>
-      <div className="text-[13px] leading-snug" style={{ color: '#000000' }}>
+      <div className="text-[13px] leading-snug break-words overflow-hidden" style={{ color: '#000000', wordBreak: 'break-word' }}>
         {children}
       </div>
     </div>
@@ -37,7 +39,11 @@ function Cell({
 }
 
 function Row({ children, className = '' }: { children: React.ReactNode; className?: string }) {
-  return <div className={`flex w-full ${className}`}>{children}</div>;
+  return (
+    <div className={`flex w-full min-w-0 ${className}`} style={{ boxSizing: 'border-box' }}>
+      {children}
+    </div>
+  );
 }
 
 function CopyButton({ text, label = 'Copiar' }: { text: string; label?: string }) {
@@ -61,7 +67,7 @@ function CopyButton({ text, label = 'Copiar' }: { text: string; label?: string }
       onClick={handleCopy}
       title={copied ? 'Copiado!' : label}
       data-html2canvas-ignore="true"
-      className={`inline-flex items-center justify-center p-0.5 rounded transition-all cursor-pointer border ${
+      className={`inline-flex items-center justify-center p-0.5 rounded transition-all cursor-pointer border shrink-0 ${
         copied 
           ? 'bg-green-50 border-green-300 text-green-700 hover:bg-green-100' 
           : 'bg-white hover:bg-gray-100 border-gray-200 text-gray-400 hover:text-gray-600'
@@ -130,54 +136,54 @@ export function SummaryCard({ data }: SummaryCardProps) {
     ? formatDateBR(est.data_situacao_especial)
     : '';
 
-  const isSituacaoAtiva = situacao === 'Ativa';
+  const isSituacaoAtiva = (situacao || '').trim().toLowerCase() === 'ativa';
 
   return (
     <section
       id="comprovante-cnpj"
       aria-labelledby="comprovante-title"
-      className="border-t border-l border-gray-400 bg-white font-sans shadow-sm w-full overflow-hidden"
-      style={{ borderColor: '#6b7280', backgroundColor: '#ffffff' }}
+      className="border-t border-l border-gray-400 bg-white font-sans w-full overflow-hidden"
+      style={{ borderColor: '#6b7280', backgroundColor: '#ffffff', boxShadow: 'none', boxSizing: 'border-box' }}
     >
       {/* ── CABEÇALHO ── */}
       <Row>
         {/* NÚMERO DE INSCRIÇÃO (CNPJ) */}
         <div
-          className="border-r border-b border-gray-400 px-2 py-1.5 w-[26%] shrink-0 flex flex-col justify-center text-center"
-          style={{ borderColor: '#6b7280', backgroundColor: '#ffffff' }}
+          className="border-r border-b border-gray-400 px-2 py-1.5 w-[26%] shrink-0 min-w-0 flex flex-col justify-center text-center"
+          style={{ borderColor: '#6b7280', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
         >
           <p
-            className="text-[9px] font-bold uppercase tracking-wide leading-none mb-1"
+            className="text-[9px] font-bold uppercase tracking-wide leading-none mb-1 break-words"
             style={{ color: '#1c1c1e' }}
           >
             CNPJ
           </p>
-          <div className="flex items-center justify-center gap-1.5">
-            <p className="text-[13px] font-semibold leading-snug" style={{ color: '#000000' }}>
+          <div className="flex items-center justify-center gap-1.5 flex-wrap min-w-0">
+            <p className="text-[13px] font-semibold leading-snug break-all" style={{ color: '#000000' }}>
               {cnpjFormatado}
             </p>
             {cnpjFormatado !== '—' && (
               <CopyButton text={cnpjFormatado} label="Copiar CNPJ" />
             )}
           </div>
-          <p className="text-[13px] leading-snug" style={{ color: '#000000' }}>{tipo}</p>
+          <p className="text-[13px] leading-snug break-words" style={{ color: '#000000' }}>{tipo}</p>
         </div>
 
         {/* TÍTULO CENTRAL */}
         <div
-          className="border-r border-b border-gray-400 flex-1 flex flex-col items-center justify-center gap-2 px-4 py-2 w-[54%]"
-          style={{ borderColor: '#6b7280', backgroundColor: '#ffffff' }}
+          className="border-r border-b border-gray-400 flex-1 min-w-0 flex flex-col items-center justify-center gap-2 px-4 py-2 w-[54%]"
+          style={{ borderColor: '#6b7280', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
         >
-          {/* ponytail: logo via html2canvas (useCORS já habilitado); se trocar por SVG, manter crossOrigin */}
           <img
-            src="/logo/ATOPY FOGUETE CURVAS.jpg"
+            src={LOGO_BASE64}
             alt="ATOPY"
-            crossOrigin="anonymous"
-            className="h-9 w-auto object-contain"
+            className="h-9 w-auto object-contain shrink-0"
+            style={{ height: '36px', maxHeight: '36px', width: 'auto', objectFit: 'contain' }}
+            height={36}
           />
           <h1
             id="comprovante-title"
-            className="text-[13px] font-bold uppercase text-center leading-tight tracking-wide"
+            className="text-[13px] font-bold uppercase text-center leading-tight tracking-wide break-words"
             style={{ color: '#000000' }}
           >
             Comprovante de Inscrição e de Situação<br />Cadastral
@@ -186,16 +192,16 @@ export function SummaryCard({ data }: SummaryCardProps) {
 
         {/* DATA DE ABERTURA */}
         <div
-          className="border-r border-b border-gray-400 px-2 py-1.5 w-[20%] shrink-0 flex flex-col justify-center text-center"
-          style={{ borderColor: '#6b7280', backgroundColor: '#ffffff' }}
+          className="border-r border-b border-gray-400 px-2 py-1.5 w-[20%] shrink-0 min-w-0 flex flex-col justify-center text-center"
+          style={{ borderColor: '#6b7280', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
         >
           <p
-            className="text-[9px] font-bold uppercase tracking-wide leading-none mb-1"
+            className="text-[9px] font-bold uppercase tracking-wide leading-none mb-1 break-words"
             style={{ color: '#1c1c1e' }}
           >
             Data de Abertura
           </p>
-          <p className="text-[13px] leading-snug" style={{ color: '#000000' }}>
+          <p className="text-[13px] leading-snug break-words" style={{ color: '#000000' }}>
             {dataAbertura}
           </p>
         </div>
@@ -205,8 +211,8 @@ export function SummaryCard({ data }: SummaryCardProps) {
       <Row>
         <Cell label="Nome Empresarial" className="w-full">
           {nomeEmpresarial !== '—' ? (
-            <div className="flex items-center justify-between gap-1">
-              <span>{nomeEmpresarial}</span>
+            <div className="flex items-center justify-between gap-1 min-w-0">
+              <span className="break-words min-w-0">{nomeEmpresarial}</span>
               <CopyButton text={nomeEmpresarial} label="Copiar Nome Empresarial" />
             </div>
           ) : (
@@ -229,11 +235,11 @@ export function SummaryCard({ data }: SummaryCardProps) {
       <Row>
         <Cell label="Inscrição Estadual" className="w-full">
           {iePrincipal?.inscricao_estadual ? (
-            <div className="flex items-center gap-1.5 py-0.5">
-              <span className="font-semibold" style={{ color: '#000000' }}>
+            <div className="flex items-center gap-1.5 py-0.5 flex-wrap min-w-0">
+              <span className="font-semibold break-all" style={{ color: '#000000' }}>
                 {iePrincipal.inscricao_estadual}
               </span>
-              <span className="text-[11px]" style={{ color: '#1c1c1e' }}>
+              <span className="text-[11px] break-words" style={{ color: '#1c1c1e' }}>
                 ({iePrincipal.estado?.sigla ?? ''}){!iePrincipal.ativo && ' - Inativa'}
               </span>
               <CopyButton text={iePrincipal.inscricao_estadual} label="Copiar Inscrição Estadual" />
@@ -257,7 +263,7 @@ export function SummaryCard({ data }: SummaryCardProps) {
           {cnaesSecundarios.length > 0 ? (
             <ul className="space-y-0.5">
               {cnaesSecundarios.map((c) => (
-                <li key={c}>{c}</li>
+                <li key={c} className="break-words">{c}</li>
               ))}
             </ul>
           ) : (
@@ -277,8 +283,8 @@ export function SummaryCard({ data }: SummaryCardProps) {
       <Row>
         <Cell label="Logradouro" className="w-[60%]">
           {logradouro !== '—' ? (
-            <div className="flex items-center justify-between gap-1">
-              <span>{logradouro}</span>
+            <div className="flex items-center justify-between gap-1 min-w-0">
+              <span className="break-words min-w-0">{logradouro}</span>
               <CopyButton text={logradouro} label="Copiar Logradouro" />
             </div>
           ) : (
@@ -287,8 +293,8 @@ export function SummaryCard({ data }: SummaryCardProps) {
         </Cell>
         <Cell label="Número" className="w-[18%]">
           {numero ? (
-            <div className="flex items-center justify-between gap-1">
-              <span>{numero}</span>
+            <div className="flex items-center justify-between gap-1 min-w-0">
+              <span className="break-words min-w-0">{numero}</span>
               <CopyButton text={numero} label="Copiar Número" />
             </div>
           ) : (
@@ -297,8 +303,8 @@ export function SummaryCard({ data }: SummaryCardProps) {
         </Cell>
         <Cell label="Complemento" className="w-[22%]">
           {complemento ? (
-            <div className="flex items-center justify-between gap-1">
-              <span>{complemento}</span>
+            <div className="flex items-center justify-between gap-1 min-w-0">
+              <span className="break-words min-w-0">{complemento}</span>
               <CopyButton text={complemento} label="Copiar Complemento" />
             </div>
           ) : (
@@ -311,8 +317,8 @@ export function SummaryCard({ data }: SummaryCardProps) {
       <Row>
         <Cell label="CEP" className="w-[18%]">
           {cep !== '—' ? (
-            <div className="flex items-center justify-between gap-1">
-              <span>{cep}</span>
+            <div className="flex items-center justify-between gap-1 min-w-0">
+              <span className="break-words min-w-0">{cep}</span>
               <CopyButton text={cep} label="Copiar CEP" />
             </div>
           ) : (
@@ -321,8 +327,8 @@ export function SummaryCard({ data }: SummaryCardProps) {
         </Cell>
         <Cell label="Bairro/Distrito" className="w-[32%]">
           {bairro ? (
-            <div className="flex items-center justify-between gap-1">
-              <span>{bairro}</span>
+            <div className="flex items-center justify-between gap-1 min-w-0">
+              <span className="break-words min-w-0">{bairro}</span>
               <CopyButton text={bairro} label="Copiar Bairro/Distrito" />
             </div>
           ) : (
@@ -341,8 +347,8 @@ export function SummaryCard({ data }: SummaryCardProps) {
       <Row>
         <Cell label="E-mail" className="w-[65%]">
           {email ? (
-            <div className="flex items-center justify-between gap-1">
-              <span>{email}</span>
+            <div className="flex items-center justify-between gap-1 min-w-0">
+              <span className="break-all min-w-0">{email}</span>
               <CopyButton text={email} label="Copiar E-mail" />
             </div>
           ) : (
@@ -351,8 +357,8 @@ export function SummaryCard({ data }: SummaryCardProps) {
         </Cell>
         <Cell label="Telefone" className="w-[35%]">
           {telefone ? (
-            <div className="flex items-center justify-between gap-1">
-              <span>{telefone}</span>
+            <div className="flex items-center justify-between gap-1 min-w-0">
+              <span className="break-words min-w-0">{telefone}</span>
               <CopyButton text={telefone} label="Copiar Telefone" />
             </div>
           ) : (
@@ -371,22 +377,23 @@ export function SummaryCard({ data }: SummaryCardProps) {
       {/* ── SITUAÇÃO CADASTRAL / DATA ── */}
       <Row>
         <div
-          className={`border-r border-b border-gray-400 px-2 py-1.5 w-[75%] ${
+          className={`border-r border-b border-gray-400 px-2 py-1.5 w-[75%] min-w-0 shrink-0 ${
             isSituacaoAtiva ? 'bg-green-50' : 'bg-red-50'
           }`}
           style={{
             borderColor: '#6b7280',
             backgroundColor: isSituacaoAtiva ? '#f0fdf4' : '#fef2f2',
+            boxSizing: 'border-box',
           }}
         >
           <p
-            className="text-[9px] font-bold uppercase tracking-wide leading-none mb-1"
+            className="text-[9px] font-bold uppercase tracking-wide leading-none mb-1 break-words"
             style={{ color: '#1c1c1e' }}
           >
             Situação Cadastral
           </p>
           <p
-            className={`text-[13px] font-bold uppercase leading-snug ${
+            className={`text-[13px] font-bold uppercase leading-snug break-words ${
               isSituacaoAtiva ? 'text-green-700' : 'text-red-700'
             }`}
             style={{ color: isSituacaoAtiva ? '#15803d' : '#b91c1c' }}
@@ -418,4 +425,5 @@ export function SummaryCard({ data }: SummaryCardProps) {
     </section>
   );
 }
+
 

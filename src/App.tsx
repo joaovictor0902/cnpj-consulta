@@ -1,15 +1,17 @@
-import { useState } from 'react';
-import html2canvas from 'html2canvas-pro';
-import { jsPDF } from 'jspdf';
+import { useState, useEffect } from 'react';
 import { CnpjForm } from './components/CnpjForm';
 import { EmptyState } from './components/EmptyState';
 import { ErrorAlert } from './components/ErrorAlert';
 import { SpinnerIcon } from './components/Icons';
+import { RecentSearches } from './components/RecentSearches';
 import { SummaryCard } from './components/SummaryCard';
 import { useCnpjLookup } from './hooks/useCnpjLookup';
+import { useRecentSearches } from './hooks/useRecentSearches';
+import { generateCnpjPdf } from './utils/generatePdf';
 
 export default function App() {
   const { status, data, error, lookup } = useCnpjLookup();
+  const { items: recentItems, addSearch, clearAll, removeSearch } = useRecentSearches();
   const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [toast, setToast] = useState<{ msg: string; visible: boolean } | null>(null);
 
@@ -18,133 +20,31 @@ export default function App() {
     setTimeout(() => setToast(null), 4000);
   };
 
+  // Salva a consulta recente quando uma busca é bem-sucedida
+  useEffect(() => {
+    if (status === 'success' && data) {
+      const cnpj = data.estabelecimento?.cnpj || '';
+      const razaoSocial = data.razao_social || '';
+      const situacao = data.estabelecimento?.situacao_cadastral || '';
+      if (cnpj) {
+        addSearch(cnpj, razaoSocial, situacao);
+      }
+    }
+  }, [status, data, addSearch]);
+
   const downloadPdf = async () => {
-    const element = document.getElementById('comprovante-cnpj');
-    if (!element) return;
+    if (!data) return;
 
     setDownloadingPdf(true);
     try {
-      // Configura html2canvas com onclone para garantir renderização de desktop (800px)
-      // e remoção de elementos interativos (botões de copiar)
-      const canvas = await html2canvas(element, {
-        scale: 2,
-        useCORS: true,
-        logging: false,
-        backgroundColor: '#ffffff',
-        ignoreElements: (el) =>
-          el.hasAttribute('data-html2canvas-ignore') ||
-          el.classList?.contains('print:hidden') ||
-          el.tagName === 'BUTTON',
-        onclone: (clonedDoc) => {
-          const clonedEl = clonedDoc.getElementById('comprovante-cnpj');
-          if (clonedEl) {
-            clonedEl.style.width = '800px';
-            clonedEl.style.maxWidth = '800px';
-            clonedEl.style.minWidth = '800px';
-            clonedEl.style.boxSizing = 'border-box';
-            clonedEl.style.margin = '0';
-            clonedEl.style.boxShadow = 'none';
-
-            // Remove todos os botões no clone como segurança extra
-            const buttons = clonedEl.querySelectorAll(
-              'button, .print\\:hidden, [data-html2canvas-ignore]'
-            );
-            buttons.forEach((btn) => btn.remove());
-          }
-        },
-      });
-
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const pdfWidth = pdf.internal.pageSize.getWidth(); // 210mm
-      const pdfHeight = pdf.internal.pageSize.getHeight(); // 297mm
-      const margin = 10; // 10mm de margem
-      const contentWidth = pdfWidth - margin * 2; // 190mm
-      const contentHeight = (canvas.height * contentWidth) / canvas.width;
-
-      // Altura imprimível de cada página em mm
-      const pageContentHeight = pdfHeight - margin * 2; // 277mm
-
-      if (contentHeight <= pageContentHeight) {
-        // Cabe em uma única página
-        const imgData = canvas.toDataURL('image/png');
-        pdf.addImage(imgData, 'PNG', margin, margin, contentWidth, contentHeight);
-      } else {
-        // Multi-página: fatia a imagem em submódulos de canvas por página
-        const canvasPageHeight = (canvas.width * pageContentHeight) / contentWidth;
-        let positionY = 0;
-        let pageIndex = 0;
-
-        while (positionY < canvas.height) {
-          if (pageIndex > 0) {
-            pdf.addPage();
-          }
-
-          const sliceHeight = Math.min(canvasPageHeight, canvas.height - positionY);
-
-          const pageCanvas = document.createElement('canvas');
-          pageCanvas.width = canvas.width;
-          pageCanvas.height = sliceHeight;
-
-          const ctx = pageCanvas.getContext('2d');
-          if (ctx) {
-            ctx.fillStyle = '#ffffff';
-            ctx.fillRect(0, 0, pageCanvas.width, pageCanvas.height);
-            ctx.drawImage(
-              canvas,
-              0,
-              positionY,
-              canvas.width,
-              sliceHeight,
-              0,
-              0,
-              canvas.width,
-              sliceHeight
-            );
-          }
-
-          const pageImgData = pageCanvas.toDataURL('image/png');
-          const slicePdfHeight = (sliceHeight * contentWidth) / canvas.width;
-
-          pdf.addImage(pageImgData, 'PNG', margin, margin, contentWidth, slicePdfHeight);
-
-          positionY += sliceHeight;
-          pageIndex++;
-        }
-      }
+      const pdf = generateCnpjPdf(data);
 
       const rawCnpj = data?.estabelecimento?.cnpj || '';
       const cnpjClean = rawCnpj.replace(/\D/g, '') || 'comprovante';
       const filename = `comprovante-cnpj-${cnpjClean}.pdf`;
 
-      if ('showSaveFilePicker' in window) {
-        try {
-          const handle = await (window as any).showSaveFilePicker({
-            suggestedName: filename,
-            types: [
-              {
-                description: 'Documento PDF (*.pdf)',
-                accept: { 'application/pdf': ['.pdf'] },
-              },
-            ],
-          });
-          const pdfBlob = pdf.output('blob');
-          const writable = await handle.createWritable();
-          await writable.write(pdfBlob);
-          await writable.close();
-          showToast('Comprovante baixado com sucesso!');
-        } catch (pickerErr) {
-          if (pickerErr instanceof Error && pickerErr.name === 'AbortError') {
-            // Usuário cancelou a janela de seleção de arquivo/pasta
-            return;
-          }
-          // Em caso de outro erro (ex: restrição do navegador), faz o download padrão
-          pdf.save(filename);
-          showToast('Comprovante baixado com sucesso!');
-        }
-      } else {
-        pdf.save(filename);
-        showToast('Comprovante baixado com sucesso!');
-      }
+      pdf.save(filename);
+      showToast('Comprovante baixado com sucesso!');
     } catch (err) {
       console.error('Erro ao gerar PDF:', err);
       alert('Erro ao gerar PDF: ' + (err instanceof Error ? err.message : String(err)));
@@ -157,7 +57,7 @@ export default function App() {
     <div className="min-h-screen bg-bg">
       <header className="border-b border-border-soft bg-white/80 backdrop-blur-sm print:hidden">
         <div className="mx-auto flex max-w-4xl flex-col items-center gap-2 px-4 py-4 sm:px-6">
-          <img src="/logo/ATOPY LOGO.png" alt="ATOPY" className="h-9" />
+          <img src="/logo/ATOPY LOGO.png" alt="ATOPY" className="h-9" style={{ height: '36px' }} />
           <h1 className="font-heading text-xl font-bold tracking-tight text-ink sm:text-2xl">Consulta CNPJ</h1>
         </div>
       </header>
@@ -167,7 +67,18 @@ export default function App() {
           <CnpjForm loading={status === 'loading'} onSubmit={lookup} />
         </div>
 
-        {status === 'idle' && <EmptyState />}
+        {/* Consultas recentes — aparece quando não há resultado ativo */}
+        {status !== 'success' && (
+          <RecentSearches
+            items={recentItems}
+            onSelect={lookup}
+            onRemove={removeSearch}
+            onClearAll={clearAll}
+            loading={status === 'loading'}
+          />
+        )}
+
+        {status === 'idle' && recentItems.length === 0 && <EmptyState />}
 
         {status === 'loading' && (
           <div
@@ -218,7 +129,7 @@ export default function App() {
 
       <footer className="mx-auto max-w-4xl px-4 pb-8 sm:px-6 print:hidden">
         <div className="flex items-center justify-center gap-2 text-xs text-ink-muted">
-          <img src="/logo/ATOPY LOGO.png" alt="ATOPY" className="h-6" />
+          <img src="/logo/ATOPY LOGO.png" alt="ATOPY" className="h-6" style={{ height: '24px' }} />
           <span>· Ferramenta interna — Fonte: API pública publica.cnpj.ws</span>
         </div>
       </footer>
