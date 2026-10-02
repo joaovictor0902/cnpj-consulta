@@ -62,6 +62,10 @@ export type CnpjResponse = {
   porte?: { id?: string; descricao?: string };
   natureza_juridica?: { id?: string; descricao?: string };
   estabelecimento?: Estabelecimento;
+  _ieOrigem?: 'publica' | 'comercial' | 'sintegraws' | 'nuvemfiscal' | 'sefaz_a1' | 'manual' | 'custom_salvo';
+  _ieAtualizadoEm?: string;
+  _provedorOrigem?: 'cnpj_ws' | 'minhareceita' | 'brasilapi';
+  qsa?: any[];
 };
 
 export type LookupStatus = 'idle' | 'loading' | 'success' | 'error';

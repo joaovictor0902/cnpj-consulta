@@ -10,14 +10,39 @@ import { useRecentSearches } from './hooks/useRecentSearches';
 import { generateCnpjPdf } from './utils/generatePdf';
 
 export default function App() {
-  const { status, data, error, lookup } = useCnpjLookup();
-  const { items: recentItems, addSearch, clearAll, removeSearch } = useRecentSearches();
-  const [downloadingPdf, setDownloadingPdf] = useState(false);
   const [toast, setToast] = useState<{ msg: string; visible: boolean } | null>(null);
 
   const showToast = (msg: string) => {
     setToast({ msg, visible: true });
-    setTimeout(() => setToast(null), 4000);
+    setTimeout(() => setToast(null), 5000);
+  };
+
+  const { status, data, error, lookup, updateIe } = useCnpjLookup({
+    onNotification: showToast,
+  });
+  const { items: recentItems, addSearch, clearAll, removeSearch } = useRecentSearches();
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [selectedIeText, setSelectedIeText] = useState<string | null>(null);
+
+  const handleLookup = (cnpj: string) => {
+    setSelectedIeText(null);
+    lookup(cnpj);
+  };
+
+  const handleIeChange = async (ieText: string | null) => {
+    setSelectedIeText(ieText);
+    const ok = await updateIe(ieText);
+    if (ok) {
+      if (ieText && ieText.trim()) {
+        showToast(
+          ieText.trim().toUpperCase() === 'ISENTO'
+            ? 'Definido como ISENTO e salvo no banco compartilhado!'
+            : 'Inscrição Estadual salva no banco compartilhado com sucesso!'
+        );
+      } else {
+        showToast('Inscrição Estadual restaurada para a consulta original.');
+      }
+    }
   };
 
   // Salva a consulta recente quando uma busca é bem-sucedida
@@ -37,7 +62,7 @@ export default function App() {
 
     setDownloadingPdf(true);
     try {
-      const pdf = generateCnpjPdf(data);
+      const pdf = generateCnpjPdf(data, selectedIeText);
 
       const rawCnpj = data?.estabelecimento?.cnpj || '';
       const cnpjClean = rawCnpj.replace(/\D/g, '') || 'comprovante';
@@ -56,22 +81,24 @@ export default function App() {
   return (
     <div className="min-h-screen bg-bg">
       <header className="border-b border-border-soft bg-white/80 backdrop-blur-sm print:hidden">
-        <div className="mx-auto flex max-w-4xl flex-col items-center gap-2 px-4 py-4 sm:px-6">
+        <div className="mx-auto flex max-w-5xl flex-col items-center gap-2 px-4 py-4 sm:px-6">
           <img src="/logo/ATOPY LOGO.png" alt="ATOPY" className="h-9" style={{ height: '36px' }} />
-          <h1 className="font-heading text-xl font-bold tracking-tight text-ink sm:text-2xl">Consulta CNPJ</h1>
+          <h1 className="font-heading text-xl font-bold tracking-tight text-ink sm:text-2xl">
+            Consulta CNPJ
+          </h1>
         </div>
       </header>
 
-      <main className="mx-auto max-w-4xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 print:p-0 print:my-0 print:max-w-none">
+      <main className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6 sm:py-8 print:p-0 print:my-0 print:max-w-none">
         <div className="rounded-xl border border-border-soft bg-white p-5 shadow-sm sm:p-6 print:hidden">
-          <CnpjForm loading={status === 'loading'} onSubmit={lookup} />
+          <CnpjForm loading={status === 'loading'} onSubmit={handleLookup} />
         </div>
 
         {/* Consultas recentes — aparece quando não há resultado ativo */}
         {status !== 'success' && (
           <RecentSearches
             items={recentItems}
-            onSelect={lookup}
+            onSelect={handleLookup}
             onRemove={removeSearch}
             onClearAll={clearAll}
             loading={status === 'loading'}
@@ -95,7 +122,11 @@ export default function App() {
         {status === 'success' && data && (
           <div className="space-y-4">
             <div className="print:shadow-none print:border-0 print:p-0">
-              <SummaryCard data={data} />
+              <SummaryCard
+                data={data}
+                customIeText={selectedIeText}
+                onIeChange={handleIeChange}
+              />
             </div>
             <div className="flex justify-end print:hidden">
               <button
@@ -127,7 +158,7 @@ export default function App() {
         )}
       </main>
 
-      <footer className="mx-auto max-w-4xl px-4 pb-8 sm:px-6 print:hidden">
+      <footer className="mx-auto max-w-5xl px-4 pb-8 sm:px-6 print:hidden">
         <div className="flex items-center justify-center gap-2 text-xs text-ink-muted">
           <img src="/logo/ATOPY LOGO.png" alt="ATOPY" className="h-6" style={{ height: '24px' }} />
           <span>· Ferramenta interna — Fonte: API pública publica.cnpj.ws</span>

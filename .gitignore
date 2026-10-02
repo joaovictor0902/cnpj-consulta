@@ -2,3 +2,9 @@ node_modules
 dist
 *.local
 .DS_Store
+.env
+certificado-a1/*.pfx
+certificado-a1/*.p12
+scratch_test_*.cjs
+inspect_cert.cjs
+

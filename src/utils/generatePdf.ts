@@ -2,6 +2,7 @@ import { jsPDF } from 'jspdf';
 import type { CnpjResponse } from './types';
 import { formatCep, formatPhone, formatDateBR, formatCnpj } from './format';
 import { LOGO_BASE64 } from '../assets/logoBase64';
+import { getPrincipalInscricaoEstadual } from './inscricaoEstadual';
 
 // ── Constantes do layout ──────────────────────────────────────────────────────
 const PAGE_W = 210; // A4 largura em mm
@@ -33,7 +34,7 @@ type CellDef = {
  * Gera o PDF do comprovante de CNPJ diretamente via jsPDF,
  * sem dependência de html2canvas.
  */
-export function generateCnpjPdf(data: CnpjResponse): jsPDF {
+export function generateCnpjPdf(data: CnpjResponse, customIeText?: string | null): jsPDF {
   const pdf = new jsPDF('p', 'mm', 'a4');
 
   // ── Extração dos dados ──────────────────────────────────────────────────────
@@ -48,13 +49,27 @@ export function generateCnpjPdf(data: CnpjResponse): jsPDF {
 
   const ieList = est?.inscricoes_estaduais ?? [];
   const estUf = est?.estado?.sigla || '';
-  const iePrincipal =
-    ieList.find((ie) => ie.estado?.sigla === estUf) ||
-    ieList.find((ie) => ie.ativo) ||
-    ieList[0];
-  const ieText = iePrincipal?.inscricao_estadual
-    ? `${iePrincipal.inscricao_estadual} (${iePrincipal.estado?.sigla ?? ''}${!iePrincipal.ativo ? ' - Inativa' : ''})`
-    : 'ISENTO';
+  const estId = est?.estado?.id;
+  const iePrincipal = getPrincipalInscricaoEstadual(ieList, estUf, estId);
+
+  let ieText = 'INCRIÇÃO ESTADUAL NÃO ENCONTRADA NA BASE PUBLICA, POR FAVOR VERIFIQUE NO SINTEGRA DO ESTADO';
+  if (customIeText !== undefined && customIeText !== null) {
+    const trimmed = customIeText.trim();
+    if (trimmed.toUpperCase() === 'ISENTO') {
+      ieText = 'ISENTO';
+    } else if (trimmed) {
+      ieText = trimmed.includes('(') ? trimmed : (estUf ? `${trimmed} (${estUf})` : trimmed);
+    }
+  } else if (iePrincipal?.inscricao_estadual) {
+    const rawIe = iePrincipal.inscricao_estadual.trim();
+    if (rawIe.toUpperCase() === 'ISENTO') {
+      ieText = 'ISENTO';
+    } else {
+      const uf = iePrincipal.estado?.sigla || estUf;
+      const inativaSuffix = !iePrincipal.ativo ? ' - Inativa' : '';
+      ieText = `${rawIe}${uf ? ` (${uf}${inativaSuffix})` : inativaSuffix}`;
+    }
+  }
 
   const cnaePrincipal = est?.atividade_principal
     ? `${est.atividade_principal.id ?? ''} - ${est.atividade_principal.descricao ?? ''}`

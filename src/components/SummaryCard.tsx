@@ -1,12 +1,16 @@
 import { useState } from 'react';
-import type { CnpjResponse } from '../utils/types';
+import type { CnpjResponse, InscricaoEstadual } from '../utils/types';
 import { formatCep, formatPhone, formatDateBR, formatCnpj } from '../utils/format';
-import { CopyIcon, CheckIcon } from './Icons';
+import { CopyIcon, CheckIcon, EditIcon, ExternalLinkIcon } from './Icons';
+import { getPrincipalInscricaoEstadual } from '../utils/inscricaoEstadual';
+import { copyCnpjToClipboard } from '../utils/sintegraLinks';
 
 import { LOGO_BASE64 } from '../assets/logoBase64';
 
 type SummaryCardProps = {
   data: CnpjResponse;
+  customIeText?: string | null;
+  onIeChange?: (ieText: string | null) => void;
 };
 
 // Componente de célula base - usa apenas border-right e border-bottom
@@ -22,16 +26,16 @@ function Cell({
 }) {
   return (
     <div
-      className={`border-r border-b border-gray-400 px-2 py-1.5 min-w-0 shrink-0 ${className}`}
+      className={`border-r border-b border-gray-400 px-2.5 py-1.5 min-w-0 shrink-0 ${className}`}
       style={{ borderColor: '#6b7280', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
     >
       <p
-        className="text-[9px] font-bold uppercase tracking-wide leading-none mb-1 break-words overflow-hidden"
+        className="text-[11px] font-bold uppercase tracking-wide leading-none mb-1 break-words overflow-hidden"
         style={{ color: '#1c1c1e', wordBreak: 'break-word' }}
       >
         {label}
       </p>
-      <div className="text-[13px] leading-snug break-words overflow-hidden" style={{ color: '#000000', wordBreak: 'break-word' }}>
+      <div className="text-[14.5px] leading-snug break-words overflow-hidden" style={{ color: '#000000', wordBreak: 'break-word' }}>
         {children}
       </div>
     </div>
@@ -82,7 +86,11 @@ function CopyButton({ text, label = 'Copiar' }: { text: string; label?: string }
   );
 }
 
-export function SummaryCard({ data }: SummaryCardProps) {
+export function SummaryCard({ data, customIeText, onIeChange }: SummaryCardProps) {
+  const [isEditingIe, setIsEditingIe] = useState(false);
+  const [tempIeInput, setTempIeInput] = useState('');
+  const [copiedNotification, setCopiedNotification] = useState<string | null>(null);
+
   const est = data.estabelecimento;
 
   const cnpjFormatado = est?.cnpj ? formatCnpj(est.cnpj) : '—';
@@ -93,9 +101,14 @@ export function SummaryCard({ data }: SummaryCardProps) {
   const porte = data.porte?.descricao ?? '—';
   const ieList = est?.inscricoes_estaduais ?? [];
   const estUf = est?.estado?.sigla || '';
-  const iePrincipal = ieList.find((ie) => ie.estado?.sigla === estUf) 
-    || ieList.find((ie) => ie.ativo) 
-    || ieList[0];
+  const estId = est?.estado?.id;
+  const iePrincipal = getPrincipalInscricaoEstadual(ieList, estUf, estId);
+  const isParana = (estUf || '').trim().toUpperCase() === 'PR';
+
+  // Outras inscrições estaduais válidas diferentes da principal
+  const otherIes: InscricaoEstadual[] = ieList.filter(
+    (ie) => Boolean(ie.inscricao_estadual) && ie.inscricao_estadual !== iePrincipal?.inscricao_estadual
+  );
 
   const cnaePrincipal = est?.atividade_principal
     ? `${est.atividade_principal.id ?? ''} - ${est.atividade_principal.descricao ?? ''}`
@@ -149,24 +162,24 @@ export function SummaryCard({ data }: SummaryCardProps) {
       <Row>
         {/* NÚMERO DE INSCRIÇÃO (CNPJ) */}
         <div
-          className="border-r border-b border-gray-400 px-2 py-1.5 w-[26%] shrink-0 min-w-0 flex flex-col justify-center text-center"
+          className="border-r border-b border-gray-400 px-2.5 py-2 w-[26%] shrink-0 min-w-0 flex flex-col justify-center text-center"
           style={{ borderColor: '#6b7280', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
         >
           <p
-            className="text-[9px] font-bold uppercase tracking-wide leading-none mb-1 break-words"
+            className="text-[11px] font-bold uppercase tracking-wide leading-none mb-1 break-words"
             style={{ color: '#1c1c1e' }}
           >
             CNPJ
           </p>
           <div className="flex items-center justify-center gap-1.5 flex-wrap min-w-0">
-            <p className="text-[13px] font-semibold leading-snug break-all" style={{ color: '#000000' }}>
+            <p className="text-[15px] font-bold leading-snug break-all" style={{ color: '#000000' }}>
               {cnpjFormatado}
             </p>
             {cnpjFormatado !== '—' && (
               <CopyButton text={cnpjFormatado} label="Copiar CNPJ" />
             )}
           </div>
-          <p className="text-[13px] leading-snug break-words" style={{ color: '#000000' }}>{tipo}</p>
+          <p className="text-[13.5px] leading-snug break-words font-medium" style={{ color: '#000000' }}>{tipo}</p>
         </div>
 
         {/* TÍTULO CENTRAL */}
@@ -183,7 +196,7 @@ export function SummaryCard({ data }: SummaryCardProps) {
           />
           <h1
             id="comprovante-title"
-            className="text-[13px] font-bold uppercase text-center leading-tight tracking-wide break-words"
+            className="text-[14.5px] font-bold uppercase text-center leading-tight tracking-wide break-words"
             style={{ color: '#000000' }}
           >
             Comprovante de Inscrição e de Situação<br />Cadastral
@@ -192,16 +205,16 @@ export function SummaryCard({ data }: SummaryCardProps) {
 
         {/* DATA DE ABERTURA */}
         <div
-          className="border-r border-b border-gray-400 px-2 py-1.5 w-[20%] shrink-0 min-w-0 flex flex-col justify-center text-center"
+          className="border-r border-b border-gray-400 px-2.5 py-2 w-[20%] shrink-0 min-w-0 flex flex-col justify-center text-center"
           style={{ borderColor: '#6b7280', backgroundColor: '#ffffff', boxSizing: 'border-box' }}
         >
           <p
-            className="text-[9px] font-bold uppercase tracking-wide leading-none mb-1 break-words"
+            className="text-[11px] font-bold uppercase tracking-wide leading-none mb-1 break-words"
             style={{ color: '#1c1c1e' }}
           >
             Data de Abertura
           </p>
-          <p className="text-[13px] leading-snug break-words" style={{ color: '#000000' }}>
+          <p className="text-[15px] font-semibold leading-snug break-words" style={{ color: '#000000' }}>
             {dataAbertura}
           </p>
         </div>
@@ -234,18 +247,287 @@ export function SummaryCard({ data }: SummaryCardProps) {
       {/* ── INSCRIÇÃO ESTADUAL ── */}
       <Row>
         <Cell label="Inscrição Estadual" className="w-full">
-          {iePrincipal?.inscricao_estadual ? (
-            <div className="flex items-center gap-1.5 py-0.5 flex-wrap min-w-0">
-              <span className="font-semibold break-all" style={{ color: '#000000' }}>
-                {iePrincipal.inscricao_estadual}
-              </span>
-              <span className="text-[11px] break-words" style={{ color: '#1c1c1e' }}>
-                ({iePrincipal.estado?.sigla ?? ''}){!iePrincipal.ativo && ' - Inativa'}
-              </span>
-              <CopyButton text={iePrincipal.inscricao_estadual} label="Copiar Inscrição Estadual" />
+          {isEditingIe ? (
+            <div className="py-1 flex flex-col sm:flex-row sm:items-center gap-2 print:hidden">
+              <input
+                type="text"
+                value={tempIeInput}
+                onChange={(e) => setTempIeInput(e.target.value)}
+                placeholder="Ex: 00000004919211 ou ISENTO"
+                className="px-2.5 py-1 text-sm border border-gray-400 rounded focus:outline-none focus:border-brand-orange w-full sm:w-64 font-mono font-semibold"
+                autoFocus
+              />
+              <div className="flex items-center gap-1.5 shrink-0 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const val = tempIeInput.trim();
+                    onIeChange?.(val || null);
+                    setIsEditingIe(false);
+                  }}
+                  className="px-3 py-1.5 text-xs font-semibold bg-brand-orange text-white rounded hover:bg-brand-orange-dark cursor-pointer transition-colors"
+                >
+                  Salvar no Banco
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onIeChange?.('ISENTO');
+                    setIsEditingIe(false);
+                  }}
+                  className="px-2.5 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded cursor-pointer transition-colors"
+                >
+                  Definir ISENTO
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingIe(false)}
+                  className="px-2.5 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-700 cursor-pointer"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          ) : customIeText !== undefined && customIeText !== null ? (
+            <div className="flex items-center gap-2 py-0.5 flex-wrap min-w-0">
+              {customIeText.trim().toUpperCase() === 'ISENTO' ? (
+                <>
+                  <span className="font-bold text-[15px]" style={{ color: '#000000' }}>ISENTO</span>
+                  <span className="text-[11px] font-semibold text-amber-900 bg-amber-100 border border-amber-300 rounded px-2 py-0.5">
+                    ISENTO (Confirmado pela Equipe)
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="font-bold break-all text-[15px]" style={{ color: '#000000' }}>
+                    {customIeText}
+                  </span>
+                  {estUf && (
+                    <span className="text-[12px] font-medium" style={{ color: '#1c1c1e' }}>
+                      ({estUf})
+                    </span>
+                  )}
+                  <CopyButton text={customIeText} label="Copiar Inscrição Estadual" />
+                  <span className="text-[11px] font-semibold text-emerald-900 bg-emerald-100 border border-emerald-300 rounded px-2 py-0.5">
+                    Confirmado pela Equipe (Sintegra)
+                  </span>
+                </>
+              )}
+              <div className="flex items-center gap-2 print:hidden ml-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTempIeInput(customIeText);
+                    setIsEditingIe(true);
+                  }}
+                  className="text-xs text-brand-orange hover:underline cursor-pointer font-medium inline-flex items-center gap-1"
+                >
+                  <EditIcon className="w-3.5 h-3.5" />
+                  <span>Alterar</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onIeChange?.(null)}
+                  className="text-xs text-gray-400 hover:text-gray-600 cursor-pointer"
+                  title="Remover do banco compartilhado e restaurar consulta original"
+                >
+                  Restaurar original
+                </button>
+              </div>
+            </div>
+          ) : iePrincipal?.inscricao_estadual ? (
+            <div className="flex flex-col gap-1 py-0.5">
+              <div className="flex items-center gap-1.5 flex-wrap min-w-0">
+                {iePrincipal.inscricao_estadual.trim().toUpperCase() === 'ISENTO' ? (
+                  <>
+                    <span className="font-bold text-[15px]" style={{ color: '#000000' }}>
+                      ISENTO
+                    </span>
+                    <span className="text-[11px] font-semibold text-amber-900 bg-amber-100 border border-amber-300 rounded px-2 py-0.5">
+                      {data._ieOrigem === 'custom_salvo' ? 'ISENTO (Confirmado pela Equipe)' : 'ISENTO'}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span className="font-bold break-all text-[15px]" style={{ color: '#000000' }}>
+                      {iePrincipal.inscricao_estadual}
+                    </span>
+                    <span className="text-[12px] font-medium break-words" style={{ color: '#1c1c1e' }}>
+                      ({iePrincipal.estado?.sigla ?? estUf})
+                    </span>
+                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded ${
+                      iePrincipal.ativo ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                    }`}>
+                      {iePrincipal.ativo ? 'Ativa' : 'Inativa'}
+                    </span>
+                    <CopyButton text={iePrincipal.inscricao_estadual} label="Copiar Inscrição Estadual" />
+                  </>
+                )}
+
+                {data._ieOrigem === 'custom_salvo' && iePrincipal.inscricao_estadual.trim().toUpperCase() !== 'ISENTO' && (
+                  <span
+                    className="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-100 text-emerald-900 border border-emerald-300"
+                    title={`Inscrição Estadual confirmada e salva no banco compartilhado da equipe`}
+                  >
+                    Confirmado pela Equipe (Sintegra)
+                  </span>
+                )}
+                {data._ieOrigem === 'comercial' && (
+                  <span
+                    className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 border border-emerald-300"
+                    title="Inscrição Estadual obtida via base comercial atualizada (Sintegra / CCC)"
+                  >
+                    Sintegra/CCC
+                  </span>
+                )}
+                {data._ieOrigem === 'sintegraws' && (
+                  <span
+                    className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-blue-100 text-blue-800 border border-blue-200"
+                    title="Inscrição Estadual obtida via SintegraWS"
+                  >
+                    SintegraWS
+                  </span>
+                )}
+                {data._ieOrigem === 'nuvemfiscal' && (
+                  <span
+                    className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-blue-100 text-blue-800 border border-blue-200"
+                    title="Inscrição Estadual obtida e validada diretamente no Cadastro Centralizado de Contribuintes (SEFAZ/CCC)"
+                  >
+                    SEFAZ/CCC
+                  </span>
+                )}
+                {data._ieOrigem === 'sefaz_a1' && (
+                  <span
+                    className="text-[10px] font-semibold px-1.5 py-0.2 rounded bg-emerald-100 text-emerald-800 border border-emerald-300"
+                    title="Inscrição Estadual obtida e validada diretamente na SEFAZ via Certificado Digital A1"
+                  >
+                    SEFAZ / A1
+                  </span>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTempIeInput(iePrincipal.inscricao_estadual || '');
+                    setIsEditingIe(true);
+                  }}
+                  className="text-xs text-brand-orange hover:underline print:hidden cursor-pointer ml-1.5 inline-flex items-center gap-1 font-medium"
+                  title="Alterar ou atualizar a Inscrição Estadual no banco compartilhado"
+                >
+                  <EditIcon className="w-3.5 h-3.5" />
+                  <span>Alterar</span>
+                </button>
+
+                {data._ieOrigem === 'custom_salvo' && (
+                  <button
+                    type="button"
+                    onClick={() => onIeChange?.(null)}
+                    className="text-xs text-gray-400 hover:text-gray-600 print:hidden cursor-pointer ml-1"
+                    title="Remover do banco compartilhado e restaurar consulta original"
+                  >
+                    Restaurar original
+                  </button>
+                )}
+              </div>
+
+              {otherIes.length > 0 && (
+                <div className="flex items-center gap-1.5 flex-wrap pt-0.5 text-[11px] text-gray-600 print:hidden">
+                  <span className="text-gray-400">Outras IEs deste CNPJ:</span>
+                  {otherIes.map((oIe, idx) => (
+                    <button
+                      key={idx}
+                      type="button"
+                      onClick={() => onIeChange?.(oIe.inscricao_estadual || null)}
+                      className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-gray-100 hover:bg-gray-200 text-gray-800 border border-gray-200 cursor-pointer transition-colors"
+                      title={`Selecionar IE de ${oIe.estado?.sigla || 'outro estado'} (${oIe.ativo ? 'Ativa' : 'Inativa'})`}
+                    >
+                      <span className="font-mono font-semibold">{oIe.inscricao_estadual}</span>
+                      <span className="text-[10px] text-gray-500">
+                        ({oIe.estado?.sigla || 'UF'}{!oIe.ativo ? ' Inativa' : ''})
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           ) : (
-            <span className="font-semibold" style={{ color: '#000000' }}>ISENTO</span>
+            <div className="flex flex-col gap-2 py-1 min-w-0">
+              <div className="flex flex-col gap-1 min-w-0">
+                <span className="font-bold text-[13px] sm:text-[14px] leading-snug text-red-600 tracking-wide uppercase break-words">
+                  INCRIÇÃO ESTADUAL NÃO ENCONTRADA NA BASE PUBLICA, POR FAVOR VERIFIQUE NO SINTEGRA DO ESTADO
+                </span>
+              </div>
+
+              <div className="flex items-center gap-2 flex-wrap print:hidden">
+                <a
+                  href="https://www.sintegra.gov.br/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => {
+                    if (est?.cnpj) {
+                      const cleanCnpj = est.cnpj.replace(/\D/g, '');
+                      copyCnpjToClipboard(cleanCnpj);
+                      setCopiedNotification('CNPJ copiado! Cole no portal do Sintegra.');
+                      setTimeout(() => setCopiedNotification(null), 4000);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-brand-orange hover:bg-brand-orange-dark rounded shadow-sm transition-colors cursor-pointer"
+                  title="Abrir portal do Sintegra (https://www.sintegra.gov.br/). O CNPJ será copiado automaticamente para a área de transferência."
+                >
+                  <span>https://www.sintegra.gov.br/</span>
+                  <ExternalLinkIcon className="w-3.5 h-3.5" />
+                </a>
+
+                {isParana && (
+                  <a
+                    href="http://www.sintegra.fazenda.pr.gov.br/sintegra/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={() => {
+                      if (est?.cnpj) {
+                        const cleanCnpj = est.cnpj.replace(/\D/g, '');
+                        copyCnpjToClipboard(cleanCnpj);
+                        setCopiedNotification('CNPJ copiado! Cole no portal do Sintegra-PR.');
+                        setTimeout(() => setCopiedNotification(null), 4000);
+                      }
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-semibold text-brand-orange bg-brand-orange-soft hover:bg-brand-orange-soft/80 rounded border border-brand-orange/40 transition-colors cursor-pointer"
+                    title="Abrir diretamente o Sintegra do Paraná (http://www.sintegra.fazenda.pr.gov.br/sintegra/)"
+                  >
+                    <span>Sintegra-PR Direto</span>
+                    <ExternalLinkIcon className="w-3.5 h-3.5" />
+                  </a>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTempIeInput('');
+                    setIsEditingIe(true);
+                  }}
+                  className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded border border-gray-300 transition-colors cursor-pointer"
+                  title="Informar manualmente a Inscrição Estadual encontrada"
+                >
+                  <EditIcon className="w-3.5 h-3.5" />
+                  <span>Informar IE</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => onIeChange?.('ISENTO')}
+                  className="px-2 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded border border-dashed border-gray-300 transition-colors cursor-pointer"
+                  title="Caso a empresa seja comprovadamente isenta de ICMS"
+                >
+                  Marcar ISENTO
+                </button>
+              </div>
+
+              {copiedNotification && (
+                <div className="w-full text-xs text-green-700 bg-green-50 border border-green-200 rounded px-2 py-1 print:hidden">
+                  {copiedNotification}
+                </div>
+              )}
+            </div>
           )}
         </Cell>
       </Row>
@@ -387,13 +669,13 @@ export function SummaryCard({ data }: SummaryCardProps) {
           }}
         >
           <p
-            className="text-[9px] font-bold uppercase tracking-wide leading-none mb-1 break-words"
+            className="text-[11px] font-bold uppercase tracking-wide leading-none mb-1 break-words"
             style={{ color: '#1c1c1e' }}
           >
             Situação Cadastral
           </p>
           <p
-            className={`text-[13px] font-bold uppercase leading-snug break-words ${
+            className={`text-[15px] font-bold uppercase leading-snug break-words ${
               isSituacaoAtiva ? 'text-green-700' : 'text-red-700'
             }`}
             style={{ color: isSituacaoAtiva ? '#15803d' : '#b91c1c' }}

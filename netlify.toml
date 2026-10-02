@@ -1,0 +1,24 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[functions]
+  directory = "netlify/functions"
+
+# Roteamento da API de Inscrições Estaduais salvas pela equipe
+[[redirects]]
+  from = "/api/ie-customizada"
+  to = "/.netlify/functions/ie-customizada"
+  status = 200
+
+# Roteamento da API de Consulta de CNPJ com contingência/fallback
+[[redirects]]
+  from = "/api/consulta-cnpj"
+  to = "/.netlify/functions/consulta-cnpj"
+  status = 200
+
+# Redirecionamento padrão para Single Page Application (SPA)
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
